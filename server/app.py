@@ -30,17 +30,70 @@ def bakeries():
     )
     return response
 
-@app.route('/bakeries/<int:id>')
+@app.route('/bakeries/<int:id>', methods=['GET', 'PATCH'])
 def bakery_by_id(id):
+    if request.method == 'GET':
+        bakery = Bakery.query.filter_by(id=id).first()
+        bakery_serialized = bakery.to_dict()
 
-    bakery = Bakery.query.filter_by(id=id).first()
-    bakery_serialized = bakery.to_dict()
+        response = make_response(
+            jsonify(bakery_serialized),
+            200
+        )
+        return response
 
-    response = make_response(
-        bakery_serialized,
-        200
+    elif request.method == 'PATCH':
+        bakery = Bakery.query.filter_by(id = id).first()
+
+        for attr in request.form:
+            setattr(bakery, attr, request.form.get(attr))
+
+        db.session.add(bakery)
+        db.session.commit()
+
+        bakery_dict = bakery.to_dict()
+
+        response = make_response(
+            jsonify(bakery_dict),
+            200
+        )
+        return response
+
+@app.route('/baked_goods', methods=['POST'])
+def baked_goods():
+    baked = BakedGood(
+    name=request.form.get('name'),
+    price=request.form.get('price'),
+    bakery_id=request.form.get("bakery_id")
     )
-    return response
+
+    if request.method == 'POST':
+
+        db.session.add(baked)
+        db.session.commit()
+
+        stored = baked.to_dict()
+        response = make_response(jsonify(stored), 201)
+        return response
+    
+
+@app.route('/baked_goods/<int:id>', methods = ['DELETE'])
+def baked_goods_by_id(id):
+    baked = BakedGood.query.filter_by(id=id).first()
+
+    if request.method == 'DELETE':
+        db.session.delete(baked)
+        db.session.commit()
+
+        baked_resp = {
+            'Delete_Successful': True,
+            'message': 'Baked Good Successfully deleted!'
+        }
+
+        response = make_response(
+            jsonify(baked_resp), 200
+        )
+        return response
 
 @app.route('/baked_goods/by_price')
 def baked_goods_by_price():
